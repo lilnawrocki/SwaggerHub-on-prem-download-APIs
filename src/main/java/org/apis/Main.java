@@ -22,7 +22,6 @@ public class Main {
         System.out.println("Enter host with protocol. Example: https://api.swaggerhub.com");
         host = input.nextLine().toLowerCase();
         input.close();
-
         FetchDocuments(host, apiKey);
     }
 
@@ -33,7 +32,7 @@ public class Main {
             fileWriter.write(response);
             fileWriter.close();
             System.out.println("File saved to: " + path + filename);
-            }
+        }
         catch(IOException exception){
             System.out.println("Error writing file: " + exception.getMessage());
         }
@@ -41,48 +40,71 @@ public class Main {
     public static void FetchDocuments(String host, String apiKey){
 
         System.out.println("Fetching all documents...");
-        Specs spec = GetSpecs(apiKey, host, 0);
+        Specs specs = GetSpecs(apiKey, host, 0);
 
-        if (spec == null){
+        if (specs == null){
             System.out.println("No documents to save.");
             return;
         }
 
-        System.out.println("Total count: " + spec.totalCount);
-
         HttpClient httpClient = HttpClient.newHttpClient();
 
-        for (int i = 0; i < spec.totalCount; i++){
+        for (int i = 0; i < specs.totalCount; i++){
 
-            String URL = GetSpecs(apiKey, host, i).apis[0].properties[0].url;
-            HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(URL))
-                    .headers(
-                            "Accept", "application/yaml",
-                            "Authorization", apiKey
-                    )
-                    .GET()
-                    .build();
+            Specs spec = GetSpecs(apiKey, host, i);
+            String x_versions = spec.apis[0].properties[5].value;
+            String[] versions = x_versions.split(",");
 
-            HttpResponse<String> response;
+            for (String s : versions) {
 
-            String[] substrings = URL.split("/");
-            String documentName = substrings[6];
-            String version = substrings[7];
-            String organisationName = substrings[5];
+                String[] URL_split = spec.apis[0].properties[0].url.split("/");
+                if (s.charAt(0) == '-' || s.charAt(0) == '*'){
+                    s = s.substring(1);
+                }
+                String URL = String.format("%s//%s/%s/%s/%s/%s/%s",
+                        URL_split[0],
+                        URL_split[2],
+                        URL_split[3],
+                        URL_split[4],
+                        URL_split[5],
+                        URL_split[6],
+                        s);
+                HttpRequest httpRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(URL))
+                        .headers(
+                                "Accept", "application/yaml",
+                                "Authorization", apiKey
+                        )
+                        .GET()
+                        .build();
 
-            String path = String.format("SwaggerHub-Downloads\\%s\\%s\\",
-                    organisationName,
-                    substrings[4]);
+                HttpResponse<String> response;
 
-            String filename = String.format("%s-%s.yaml",
-                    documentName,
-                    version);
-            try{
-                response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-                SaveDocumentToFile(response.body(), path, filename);
-            }catch(IOException | InterruptedException exception){
-                System.out.println(exception.getMessage());
+                String[] substrings = URL.split("/");
+                String documentName = substrings[6];
+                String version = substrings[7];
+                String organisationName = substrings[5];
+
+                String path = String.format("SwaggerHub-Downloads\\%s\\%s\\",
+                        organisationName,
+                        substrings[4]);
+
+                String filename = String.format("%s-%s.yaml",
+                        documentName,
+                        version);
+                try {
+                    response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() == 200){
+                        SaveDocumentToFile(response.body(), path, filename);
+                    }
+                    else{
+                        System.out.println("Something went wrong: " + response.statusCode());
+                        System.out.println(response.body());
+                        return;
+                    }
+                } catch (IOException | InterruptedException exception) {
+                    System.out.println(exception.getMessage());
+                }
             }
         }
         httpClient.close();
