@@ -1,6 +1,6 @@
 ## Description
 
-Java console application for downloading `default` versions of APIs, domains, and templates in YAML format from SwaggerHub On-premise instance. The application uses RegistryAPI endpoints. 
+Java console application for downloading all versions of APIs, domains, and templates in YAML format from SwaggerHub On-premise instance. The application uses RegistryAPI endpoints. 
 
 Input parameters:
 - Admin API key
