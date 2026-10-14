@@ -89,7 +89,7 @@ public class Main {
                         organisationName,
                         substrings[4]);
 
-                String filename = String.format("%s-%s.yaml",
+                String filename = String.format("%s-version_%s.yaml",
                         documentName,
                         version);
                 try {
